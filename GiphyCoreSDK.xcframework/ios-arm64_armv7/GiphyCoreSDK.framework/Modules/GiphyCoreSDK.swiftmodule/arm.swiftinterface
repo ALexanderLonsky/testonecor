@@ -1,5 +1,5 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 5.3 (swiftlang-1200.0.29.2 clang-1200.0.30.1)
+// swift-compiler-version: Apple Swift version 5.3.1 (swiftlang-1200.0.41 clang-1200.0.32.8)
 // swift-module-flags: -target armv7-apple-ios9.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -module-name GiphyCoreSDK
 import CommonCrypto
 import Foundation
@@ -7,13 +7,6 @@ import Foundation
 import Swift
 import SystemConfiguration
 import UIKit
-public typealias Attribute = [Swift.String : Swift.String]
-public class GPHAction : Swift.Codable {
-  required public init(_ actionType: GiphyCoreSDK.GPHActionType, gifId: Swift.String, tid: Swift.String? = nil, ts: Swift.Int64 = Int64(1000.0 * Double(Date().timeIntervalSince1970)), attributes: [GiphyCoreSDK.Attribute]? = nil)
-  @objc deinit
-  required public init(from decoder: Swift.Decoder) throws
-  public func encode(to encoder: Swift.Encoder) throws
-}
 @objc @_inheritsConvenienceInitializers @objcMembers public class GPHChannelTag : GiphyCoreSDK.GPHFilterable, Foundation.NSCoding {
   public var id: Swift.Int? {
     get
@@ -142,12 +135,9 @@ extension GPHUser : GiphyCoreSDK.GPHMappable {
   public static func mapData(_ data: GiphyCoreSDK.GPHJSONObject, options: [Swift.String : Any?]) throws -> GiphyCoreSDK.GPHUser
   public typealias GPHMappableObject = GiphyCoreSDK.GPHUser
 }
-public class GPHSession : Swift.Codable {
+@_hasMissingDesignatedInitializers public class GPHSession : Swift.Codable {
+  public var events: [GiphyCoreSDK.GPHAnalyticsEvent]
   public var sessionId: Swift.String?
-  public var events: [GiphyCoreSDK.GPHEvent]
-  required public init(user: GiphyCoreSDK.GPHPingbackUser)
-  public func getOrCreateEvent(responseId: Swift.String, eventType: GiphyCoreSDK.GPHEventType) -> GiphyCoreSDK.GPHEvent
-  public func event(responseId: Swift.String) -> GiphyCoreSDK.GPHEvent?
   @objc deinit
   required public init(from decoder: Swift.Decoder) throws
   public func encode(to encoder: Swift.Encoder) throws
@@ -397,6 +387,14 @@ public struct GPHPingbackHTTPError : Foundation.CustomNSError {
 }
 public class GPHPingbackUser : Swift.Codable {
   required public init(userId: Swift.String, loggedInUserId: Swift.String?, randomId: Swift.String?)
+  @objc deinit
+  required public init(from decoder: Swift.Decoder) throws
+  public func encode(to encoder: Swift.Encoder) throws
+}
+public typealias Attributes = [Swift.String : Swift.String]
+public class GPHAnalyticsEvent : Swift.Codable {
+  public var eventType: GiphyCoreSDK.GPHEventType
+  required public init(analyticsResponsePayload: Swift.String, eventType: GiphyCoreSDK.GPHEventType = .search, actionType: GiphyCoreSDK.GPHActionType, gifId: Swift.String, tid: Swift.String? = nil, ts: Swift.Int64 = Int64(1000.0 * Double(Date().timeIntervalSince1970)), attributes: GiphyCoreSDK.Attributes? = nil, userId: Swift.String, loggedInUserId: Swift.String?, randomId: Swift.String?)
   required public init(from decoder: Swift.Decoder) throws
   @objc deinit
   public func encode(to encoder: Swift.Encoder) throws
@@ -412,7 +410,7 @@ extension GPHOMData : GiphyCoreSDK.GPHMappable {
 @objc @_inheritsConvenienceInitializers public class GiphyPingbacks : ObjectiveC.NSObject {
   @objc public class func configure(apiKey: Swift.String, verificationMode: Swift.Bool = false)
   @objc public class func addAdditionalHeaders(parameters: [Swift.String : Swift.String]?)
-  @objc public class func log(userId: Swift.String, loggedInUserId: Swift.String? = nil, responseId: Swift.String? = nil, mediaId: Swift.String, tid: Swift.String? = nil, eventType: GiphyCoreSDK.GPHEventType, actionType: GiphyCoreSDK.GPHActionType, sessionId: Swift.String? = nil, attributes: [GiphyCoreSDK.Attribute]? = nil)
+  @objc public class func log(userId: Swift.String, loggedInUserId: Swift.String? = nil, analyticsResponsePayload: Swift.String? = nil, mediaId: Swift.String, tid: Swift.String? = nil, eventType: GiphyCoreSDK.GPHEventType, actionType: GiphyCoreSDK.GPHActionType, sessionId: Swift.String? = nil, attributes: GiphyCoreSDK.Attributes? = nil)
   @objc public class func flush()
   @objc public class func enableDebugLogging(_ enable: Swift.Bool)
   @objc public static var pingbacksId: Swift.String?
@@ -528,7 +526,13 @@ extension GPHAsyncOperation {
   @objc public var trendingDate: Foundation.Date? {
     get
   }
+  @objc public var isDynamic: Swift.Bool {
+    get
+  }
   @objc public var video: GiphyCoreSDK.GPHVideo? {
+    get
+  }
+  @objc public var analyticsResponsePayload: Swift.String? {
     get
   }
   @objc public var isHidden: Swift.Bool {
@@ -689,15 +693,6 @@ public enum GPHRequestRouter {
   public class func requestRandom(completion: ((Swift.Bool, Swift.Error?) -> Swift.Void)? = nil)
   @objc deinit
 }
-public class GPHEvent : Swift.Codable {
-  public var eventType: GiphyCoreSDK.GPHEventType
-  public var referrer: Swift.String?
-  public var actions: [GiphyCoreSDK.GPHAction]
-  required public init(responseId: Swift.String, eventType: GiphyCoreSDK.GPHEventType = .search)
-  required public init(from decoder: Swift.Decoder) throws
-  @objc deinit
-  public func encode(to encoder: Swift.Encoder) throws
-}
 @objc @_inheritsConvenienceInitializers @objcMembers public class GPHMediaResponse : GiphyCoreSDK.GPHResponse {
   @objc public var data: GiphyCoreSDK.GPHMedia? {
     get
@@ -754,7 +749,7 @@ extension GPHMedia {
     get
     set(newValue)
   }
-  @objc dynamic public var pingbacksAttributes: [GiphyCoreSDK.Attribute]? {
+  @objc dynamic public var pingbacksAttributes: GiphyCoreSDK.Attributes? {
     @objc get
     @objc set(newValue)
   }
@@ -858,6 +853,10 @@ public typealias GPHJSONCompletionHandler = (GiphyCoreSDK.GPHJSONObject?, Founda
   @objc public func emoji(offset: Swift.Int = 0, limit: Swift.Int = 25, completionHandler: @escaping (GiphyCoreSDK.GPHListMediaResponse?, Swift.Error?) -> Swift.Void) -> Foundation.Operation
   @discardableResult
   @objc public func trendingSearches(completionHandler: @escaping (GiphyCoreSDK.GPHListTermSuggestionResponse?, Swift.Error?) -> Swift.Void) -> Foundation.Operation
+  @discardableResult
+  @objc public func channelsSearch(_ query: Swift.String, offset: Swift.Int = 0, limit: Swift.Int = 25, completionHandler: @escaping (GiphyCoreSDK.GPHListChannelResponse?, Swift.Error?) -> Swift.Void) -> Foundation.Operation
+  @discardableResult
+  @objc public func animate(_ query: Swift.String, completionHandler: @escaping (GiphyCoreSDK.GPHListMediaResponse?, Swift.Error?) -> Swift.Void) -> Foundation.Operation
   override public init(_ apiKey: Swift.String?)
   @objc deinit
 }
